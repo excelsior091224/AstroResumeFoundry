@@ -104,29 +104,53 @@ export async function getCareerContext(
   return { user, companies };
 }
 
-async function findCompanyByName(
-  db: D1Database,
-  userId: string,
-  name: string
-): Promise<{ id: string } | null> {
-  return db
+/**
+ * Resolves (creating if needed) the company row for this user/name, race-safe
+ * via INSERT OR IGNORE against the unique (user_id, name) index, followed by
+ * a SELECT for whichever row "won" the insert.
+ */
+async function resolveCompanyId(db: D1Database, userId: string, name: string, employmentType: string): Promise<string> {
+  const candidateId = newId();
+  await db
+    .prepare(
+      `INSERT OR IGNORE INTO companies (id, user_id, name, employment_type, sort_order)
+       VALUES (?1, ?2, ?3, ?4, ?5)`
+    )
+    .bind(candidateId, userId, name, employmentType, Date.now())
+    .run();
+
+  const company = await db
     .prepare('SELECT id FROM companies WHERE user_id = ?1 AND name = ?2 LIMIT 1')
     .bind(userId, name)
     .first<{ id: string }>();
+
+  if (!company) {
+    throw new Error('Failed to resolve or create the company row.');
+  }
+  return company.id;
 }
 
-async function findSkillId(
-  db: D1Database,
-  userId: string,
-  name: string
-): Promise<string | null> {
-  const existing = await db
-    .prepare(
-      "SELECT id FROM skills WHERE user_id = ?1 AND category = 'general' AND name = ?2 LIMIT 1"
-    )
+/**
+ * Resolves (creating if needed) a general skill row for this user/name,
+ * race-safe via INSERT OR IGNORE against the unique (user_id, category, name)
+ * constraint, followed by a SELECT for whichever row "won" the insert.
+ */
+async function resolveSkillId(db: D1Database, userId: string, name: string): Promise<string> {
+  const candidateId = newId();
+  await db
+    .prepare(`INSERT OR IGNORE INTO skills (id, user_id, category, name) VALUES (?1, ?2, 'general', ?3)`)
+    .bind(candidateId, userId, name)
+    .run();
+
+  const skill = await db
+    .prepare("SELECT id FROM skills WHERE user_id = ?1 AND category = 'general' AND name = ?2 LIMIT 1")
     .bind(userId, name)
     .first<{ id: string }>();
-  return existing?.id ?? null;
+
+  if (!skill) {
+    throw new Error('Failed to resolve or create the skill row.');
+  }
+  return skill.id;
 }
 
 function parseSkillNames(raw: string): string[] {
@@ -139,9 +163,9 @@ function parseSkillNames(raw: string): string[] {
 /**
  * Persist one career-log entry (company + project + skills) for the demo user.
  *
- * Lookups for existing company/skill rows happen first (read-only), then all
- * inserts are executed together via `db.batch`, so the writes for this entry
- * are applied atomically even if one of them would otherwise fail.
+ * Company/skill rows are resolved race-safely (INSERT OR IGNORE against a
+ * unique constraint, then SELECT), then the project row and project_skills
+ * links are executed together via `db.batch` for atomicity.
  */
 export async function createCareerEntry(
   db: D1Database,
@@ -153,20 +177,7 @@ export async function createCareerEntry(
   let companyId: string | null = null;
   const companyName = input.company.trim();
   if (companyName) {
-    const existingCompany = await findCompanyByName(db, userId, companyName);
-    if (existingCompany) {
-      companyId = existingCompany.id;
-    } else {
-      companyId = newId();
-      statements.push(
-        db
-          .prepare(
-            `INSERT INTO companies (id, user_id, name, employment_type, sort_order)
-             VALUES (?1, ?2, ?3, ?4, ?5)`
-          )
-          .bind(companyId, userId, companyName, input.employmentType, Date.now())
-      );
-    }
+    companyId = await resolveCompanyId(db, userId, companyName, input.employmentType);
   }
 
   const projectId = newId();
@@ -181,15 +192,7 @@ export async function createCareerEntry(
 
   const skillNames = parseSkillNames(input.skills);
   for (const skillName of skillNames) {
-    let skillId = await findSkillId(db, userId, skillName);
-    if (!skillId) {
-      skillId = newId();
-      statements.push(
-        db
-          .prepare(`INSERT INTO skills (id, user_id, category, name) VALUES (?1, ?2, 'general', ?3)`)
-          .bind(skillId, userId, skillName)
-      );
-    }
+    const skillId = await resolveSkillId(db, userId, skillName);
     statements.push(
       db
         .prepare('INSERT OR IGNORE INTO project_skills (project_id, skill_id) VALUES (?1, ?2)')
