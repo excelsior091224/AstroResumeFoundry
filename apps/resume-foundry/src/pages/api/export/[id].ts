@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { env } from 'cloudflare:workers';
+import { getOrCreateDemoUser } from '../../../lib/db';
 
 export const prerender = false;
 
@@ -10,9 +11,12 @@ export const GET: APIRoute = async ({ params }) => {
   }
 
   const db = env.DB;
+  // Even though auth isn't implemented yet, scope the lookup to the current
+  // user so this check is meaningful once real accounts exist.
+  const user = await getOrCreateDemoUser(db);
   const exportRow = await db
-    .prepare('SELECT r2_key AS r2Key FROM exports WHERE id = ?1')
-    .bind(id)
+    .prepare('SELECT r2_key AS r2Key FROM exports WHERE id = ?1 AND user_id = ?2')
+    .bind(id, user.id)
     .first<{ r2Key: string | null }>();
 
   if (!exportRow?.r2Key) {

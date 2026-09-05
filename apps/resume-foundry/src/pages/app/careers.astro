@@ -1,11 +1,9 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { env } from 'cloudflare:workers';
-import { getOrCreateDemoUser, listCareerData } from '../../lib/db';
+import { getCareerContext } from '../../lib/db';
 
-const db = env.DB;
-const user = await getOrCreateDemoUser(db);
-const companies = await listCareerData(db, user.id);
+const { companies } = await getCareerContext(env.DB);
 ---
 <BaseLayout title="職歴ログ | Resume Foundry">
   <section class="container stack">

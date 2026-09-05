@@ -69,25 +69,39 @@ function newId(): string {
 }
 
 export async function getOrCreateDemoUser(db: D1Database): Promise<CareerUser> {
-  const existing = await db
-    .prepare('SELECT id, email, display_name AS displayName FROM users WHERE provider_subject = ?1')
-    .bind(DEMO_PROVIDER_SUBJECT)
-    .first<CareerUser>();
-
-  if (existing) {
-    return existing;
-  }
-
+  // `provider_subject` is UNIQUE, so INSERT OR IGNORE followed by a SELECT is
+  // race-safe even if two requests try to create the demo user concurrently.
   const id = newId();
   await db
     .prepare(
-      `INSERT INTO users (id, email, display_name, auth_provider, provider_subject)
+      `INSERT OR IGNORE INTO users (id, email, display_name, auth_provider, provider_subject)
        VALUES (?1, ?2, ?3, 'demo', ?4)`
     )
     .bind(id, DEMO_EMAIL, 'サンプル 太郎', DEMO_PROVIDER_SUBJECT)
     .run();
 
-  return { id, email: DEMO_EMAIL, displayName: 'サンプル 太郎' };
+  const user = await db
+    .prepare('SELECT id, email, display_name AS displayName FROM users WHERE provider_subject = ?1')
+    .bind(DEMO_PROVIDER_SUBJECT)
+    .first<CareerUser>();
+
+  if (!user) {
+    throw new Error('Failed to load or create the demo user.');
+  }
+
+  return user;
+}
+
+/**
+ * Loads the demo user together with their career data. Shared by pages/API
+ * routes that need both pieces (careers.astro, preview.astro, api/careers).
+ */
+export async function getCareerContext(
+  db: D1Database
+): Promise<{ user: CareerUser; companies: CompanyWithProjects[] }> {
+  const user = await getOrCreateDemoUser(db);
+  const companies = await listCareerData(db, user.id);
+  return { user, companies };
 }
 
 async function findCompanyByName(

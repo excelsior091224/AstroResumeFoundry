@@ -1,14 +1,13 @@
 import type { APIRoute } from 'astro';
 import { env } from 'cloudflare:workers';
-import { getOrCreateDemoUser, listCareerData } from '../../lib/db';
+import { getCareerContext } from '../../lib/db';
 import { renderResumeHtml } from '../../lib/resume';
 
 export const prerender = false;
 
 export const POST: APIRoute = async () => {
   const db = env.DB;
-  const user = await getOrCreateDemoUser(db);
-  const companies = await listCareerData(db, user.id);
+  const { user, companies } = await getCareerContext(db);
   const html = renderResumeHtml(user, companies);
 
   const id = crypto.randomUUID();
