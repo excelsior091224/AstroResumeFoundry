@@ -1,9 +1,7 @@
 /// <reference path="../.astro/types.d.ts" />
 /// <reference types="astro/client" />
 
-type Runtime = import('@astrojs/cloudflare').Runtime<Env>;
-
-interface Env {
+interface AppEnv {
   DB: D1Database;
   EXPORTS: R2Bucket;
   AI?: Ai;
@@ -11,6 +9,8 @@ interface Env {
   CLERK_SECRET_KEY?: string;
 }
 
-declare namespace App {
-  interface Locals extends Runtime {}
+// Merges our bindings into the ambient `Cloudflare.Env` used by
+// `import { env } from 'cloudflare:workers'` (Astro v6 / @astrojs/cloudflare v14+).
+declare namespace Cloudflare {
+  interface Env extends AppEnv {}
 }

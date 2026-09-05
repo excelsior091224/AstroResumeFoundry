@@ -1,23 +1,86 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import { env } from 'cloudflare:workers';
+import { getCareerContext } from '../../lib/db';
+
+const { companies } = await getCareerContext(env.DB);
 ---
 <BaseLayout title="職歴ログ | Resume Foundry">
   <section class="container stack">
     <div class="card">
       <span class="eyebrow">Career logging</span>
       <h1>職歴・案件・スキルを記録する</h1>
-      <p>現段階は画面設計の実装です。フォーム送信は認証とD1接続後にAPI Routeへ接続します。</p>
+      <p>入力内容はCloudflare D1に保存され、職務経歴書プレビューに反映されます。</p>
     </div>
-    <form class="panel stack">
+    <form id="career-form" class="panel stack">
       <div class="form-grid">
         <label>会社・契約先<input name="company" placeholder="例：株式会社サンプル / フリーランス" /></label>
-        <label>雇用・契約形態<select name="employment_type"><option>正社員</option><option>業務委託</option><option>フリーランス</option><option>その他</option></select></label>
-        <label>案件名<input name="project" placeholder="例：業務管理システム刷新" /></label>
+        <label>雇用・契約形態
+          <select name="employment_type">
+            <option>正社員</option><option>業務委託</option><option>フリーランス</option><option>その他</option>
+          </select>
+        </label>
+        <label>案件名<input name="project" required placeholder="例：業務管理システム刷新" /></label>
         <label>役割<input name="role" placeholder="例：バックエンド設計・実装" /></label>
       </div>
       <label>使用技術<input name="skills" placeholder="Laravel, Astro, Cloudflare Workers, D1" /></label>
       <label>成果・工夫した点<textarea name="achievements" placeholder="数字、改善内容、担当範囲を記録"></textarea></label>
-      <div class="actions no-print"><button class="button" type="button">保存機能は認証/D1接続後に有効化</button></div>
+      <div class="actions no-print">
+        <button class="button" type="submit">保存する</button>
+        <span id="career-form-status"></span>
+      </div>
     </form>
+
+    <div class="panel stack">
+      <h2>登録済みの職歴</h2>
+      {companies.length === 0 && <p>まだ登録された職歴はありません。</p>}
+      {companies.map((company) => (
+        <div class="stack">
+          <h3>{company.name}</h3>
+          {company.projects.map((project) => (
+            <div>
+              <strong>{project.name}</strong>
+              {project.role && <span> / {project.role}</span>}
+              {project.skills.length > 0 && (
+                <p class="skills">{project.skills.map((s) => s.name).join(' / ')}</p>
+              )}
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
   </section>
+
+  <script>
+    const form = document.querySelector<HTMLFormElement>('#career-form');
+    const status = document.querySelector<HTMLSpanElement>('#career-form-status');
+
+    form?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (!form || !status) return;
+
+      const formData = new FormData(form);
+      const payload = Object.fromEntries(formData.entries());
+
+      status.textContent = '保存中...';
+      try {
+        const response = await fetch('/api/careers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          const data = (await response.json().catch(() => ({}))) as { error?: string };
+          status.textContent = data.error ?? '保存に失敗しました。';
+          return;
+        }
+
+        status.textContent = '保存しました。';
+        window.location.reload();
+      } catch {
+        status.textContent = '通信エラーが発生しました。';
+      }
+    });
+  </script>
 </BaseLayout>
