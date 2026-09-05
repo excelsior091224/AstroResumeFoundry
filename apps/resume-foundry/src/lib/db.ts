@@ -119,6 +119,16 @@ async function resolveCompanyId(db: D1Database, userId: string, name: string, em
     .bind(candidateId, userId, name, employmentType, Date.now())
     .run();
 
+  // Keep the employment type in sync with the latest submission, in case the
+  // company already existed and the INSERT above was a no-op.
+  await db
+    .prepare(
+      `UPDATE companies SET employment_type = ?3, updated_at = CURRENT_TIMESTAMP
+       WHERE user_id = ?1 AND name = ?2`
+    )
+    .bind(userId, name, employmentType)
+    .run();
+
   const company = await db
     .prepare('SELECT id FROM companies WHERE user_id = ?1 AND name = ?2 LIMIT 1')
     .bind(userId, name)
@@ -191,8 +201,8 @@ export async function createCareerEntry(
   );
 
   const skillNames = parseSkillNames(input.skills);
-  for (const skillName of skillNames) {
-    const skillId = await resolveSkillId(db, userId, skillName);
+  const skillIds = await Promise.all(skillNames.map((skillName) => resolveSkillId(db, userId, skillName)));
+  for (const skillId of skillIds) {
     statements.push(
       db
         .prepare('INSERT OR IGNORE INTO project_skills (project_id, skill_id) VALUES (?1, ?2)')
