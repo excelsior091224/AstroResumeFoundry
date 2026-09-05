@@ -1,0 +1,41 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+<BaseLayout title="Resume Foundry | エンジニア向け職務経歴ログ">
+  <section class="container hero">
+    <div>
+      <span class="eyebrow">Career log SaaS</span>
+      <h1>職務経歴は、転職直前ではなく日々育てる。</h1>
+      <p>案件、担当工程、技術、成果、工夫した点を継続的に記録し、必要な時に職務経歴書・スキルシート・自己PRへ変換するサービスです。</p>
+      <div class="actions">
+        <a class="button" href="/app">MVP画面を見る</a>
+        <a class="button secondary" href="/guides">構想ガイドを読む</a>
+      </div>
+    </div>
+    <aside class="card">
+      <span class="badge">Cloudflare Workers構成</span>
+      <h2>低コストで始める構成</h2>
+      <ul class="feature-list">
+        <li>AstroをWorkers上でSSR</li>
+        <li>D1に職歴・案件・スキルを保存</li>
+        <li>R2は有料エクスポートの一時保存に限定</li>
+        <li>AIは要約・添削時だけ呼び出し</li>
+      </ul>
+    </aside>
+  </section>
+
+  <section class="container grid">
+    <article class="panel">
+      <h2>記録する</h2>
+      <p>会社、案件、役割、技術、成果を再利用しやすい粒度で保存します。</p>
+    </article>
+    <article class="panel">
+      <h2>整理する</h2>
+      <p>スキル別・案件別・期間別に棚卸しし、経験年数や強みを見える化します。</p>
+    </article>
+    <article class="panel">
+      <h2>出力する</h2>
+      <p>転職用、フリーランス営業用、SESスキルシート用に内容を組み替えます。</p>
+    </article>
+  </section>
+</BaseLayout>

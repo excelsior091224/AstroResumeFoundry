@@ -1,0 +1,24 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+---
+<BaseLayout title="職務経歴書プレビュー | Resume Foundry">
+  <section class="container stack">
+    <div class="card no-print">
+      <span class="eyebrow">Resume preview</span>
+      <h1>保存データから職務経歴書を生成</h1>
+      <p>初期PDF出力はブラウザ印刷を使う軽量方式にし、DOCXや複数テンプレートを有料機能候補にします。</p>
+      <div class="actions"><button class="button" onclick="window.print()">PDFとして印刷</button></div>
+    </div>
+    <article class="preview-paper">
+      <h1>職務経歴書</h1>
+      <p>氏名: サンプル 太郎</p>
+      <h2>職務要約</h2>
+      <p>Webアプリケーションの設計、開発、運用を中心に、業務改善と開発基盤整備を担当。</p>
+      <h2>職務経歴</h2>
+      <h3>業務管理システム刷新</h3>
+      <p>担当: 要件整理、Laravel API設計、フロントエンド改善、運用改善。</p>
+      <h2>スキル</h2>
+      <p>PHP / Laravel / JavaScript / Astro / Cloudflare Workers / SQL</p>
+    </article>
+  </section>
+</BaseLayout>

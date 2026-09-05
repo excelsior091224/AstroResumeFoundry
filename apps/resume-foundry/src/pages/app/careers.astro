@@ -1,0 +1,23 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+---
+<BaseLayout title="職歴ログ | Resume Foundry">
+  <section class="container stack">
+    <div class="card">
+      <span class="eyebrow">Career logging</span>
+      <h1>職歴・案件・スキルを記録する</h1>
+      <p>現段階は画面設計の実装です。フォーム送信は認証とD1接続後にAPI Routeへ接続します。</p>
+    </div>
+    <form class="panel stack">
+      <div class="form-grid">
+        <label>会社・契約先<input name="company" placeholder="例：株式会社サンプル / フリーランス" /></label>
+        <label>雇用・契約形態<select name="employment_type"><option>正社員</option><option>業務委託</option><option>フリーランス</option><option>その他</option></select></label>
+        <label>案件名<input name="project" placeholder="例：業務管理システム刷新" /></label>
+        <label>役割<input name="role" placeholder="例：バックエンド設計・実装" /></label>
+      </div>
+      <label>使用技術<input name="skills" placeholder="Laravel, Astro, Cloudflare Workers, D1" /></label>
+      <label>成果・工夫した点<textarea name="achievements" placeholder="数字、改善内容、担当範囲を記録"></textarea></label>
+      <div class="actions no-print"><button class="button" type="button">保存機能は認証/D1接続後に有効化</button></div>
+    </form>
+  </section>
+</BaseLayout>

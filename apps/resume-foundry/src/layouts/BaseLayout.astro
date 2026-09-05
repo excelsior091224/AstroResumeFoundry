@@ -1,0 +1,41 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description = 'エンジニアの職務経歴を日々記録し、職務経歴書やスキルシートへ変換する低コストSaaS構想。' } = Astro.props;
+---
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <title>{title}</title>
+  </head>
+  <body>
+    <div class="site-shell">
+      <header class="header">
+        <a class="brand" href="/">
+          <span class="brand-mark">R</span>
+          <span>Resume Foundry</span>
+        </a>
+        <nav class="nav" aria-label="主要ナビゲーション">
+          <a href="/guides">ガイド</a>
+          <a href="/app">ダッシュボード</a>
+          <a href="/app/careers">職歴ログ</a>
+          <a href="/app/preview">プレビュー</a>
+        </nav>
+      </header>
+      <main class="main">
+        <slot />
+      </main>
+      <footer class="footer">
+        <p>Cloudflare Workers + Astro + D1 を前提にした保存型職務経歴管理SaaSの初期実装です。</p>
+      </footer>
+    </div>
+  </body>
+</html>

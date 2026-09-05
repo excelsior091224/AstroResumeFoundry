@@ -1,0 +1,29 @@
+{
+  "name": "AstroResumeFoundry",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node",
+  "workspaceFolder": "/workspace",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
+  "postCreateCommand": "npm install --prefix apps/resume-foundry",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "astro-build.astro-vscode",
+        "esbenp.prettier-vscode",
+        "dbaeumer.vscode-eslint"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  },
+  "forwardPorts": [4321, 8787],
+  "portsAttributes": {
+    "4321": {
+      "label": "astro dev"
+    },
+    "8787": {
+      "label": "wrangler preview"
+    }
+  },
+  "remoteUser": "node"
+}

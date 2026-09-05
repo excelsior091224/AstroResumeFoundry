@@ -1,0 +1,32 @@
+{
+  "name": "astro-resume-foundry",
+  "version": "1.0.0",
+  "description": "Astro on Cloudflare Workers prototype for the Resume Foundry career logging SaaS.",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro check && astro build",
+    "preview": "wrangler dev ./dist/_worker.js/index.js --assets ./dist",
+    "deploy": "astro build && wrangler deploy ./dist/_worker.js/index.js",
+    "db:migrate:local": "wrangler d1 migrations apply astro-resume-foundry --local",
+    "db:migrate:remote": "wrangler d1 migrations apply astro-resume-foundry --remote"
+  },
+  "keywords": [
+    "astro",
+    "cloudflare-workers",
+    "d1",
+    "resume"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@astrojs/cloudflare": "^14.3.0",
+    "astro": "^7.3.1"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "typescript": "^5.9.3",
+    "wrangler": "^4.129.0"
+  },
+  "private": true,
+  "type": "module"
+}

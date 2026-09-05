@@ -1,0 +1,21 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+---
+<BaseLayout title="ダッシュボード | Resume Foundry">
+  <section class="container stack">
+    <div class="card">
+      <span class="eyebrow">Authenticated app placeholder</span>
+      <h1>ダッシュボード</h1>
+      <p>本番ではClerkなどでログイン済みユーザーを確認し、D1から職歴・案件・スキルを読み込みます。</p>
+      <div class="kpis">
+        <div class="kpi"><strong>3</strong><span>登録案件</span></div>
+        <div class="kpi"><strong>12</strong><span>スキル</span></div>
+        <div class="kpi"><strong>1</strong><span>出力テンプレート</span></div>
+      </div>
+      <div class="actions">
+        <a class="button" href="/app/careers">職歴を記録する</a>
+        <a class="button secondary" href="/app/preview">職務経歴書を見る</a>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
