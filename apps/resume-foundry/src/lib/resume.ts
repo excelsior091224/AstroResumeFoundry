@@ -12,7 +12,7 @@ function escapeHtml(value: string): string {
     .replace(/'/g, '&#39;');
 }
 
-function collectAllSkillNames(companies: CompanyWithProjects[]): string[] {
+export function collectAllSkillNames(companies: CompanyWithProjects[]): string[] {
   const names = new Set<string>();
   for (const company of companies) {
     for (const project of company.projects) {

@@ -2,11 +2,10 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { env } from 'cloudflare:workers';
 import { getCareerContext } from '../../lib/db';
+import { collectAllSkillNames } from '../../lib/resume';
 
 const { user, companies } = await getCareerContext(env.DB);
-const skillNames = Array.from(
-  new Set(companies.flatMap((c) => c.projects.flatMap((p) => p.skills.map((s) => s.name))))
-);
+const skillNames = collectAllSkillNames(companies);
 ---
 <BaseLayout title="職務経歴書プレビュー | Resume Foundry">
   <section class="container stack">

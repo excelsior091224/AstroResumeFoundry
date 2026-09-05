@@ -115,62 +115,18 @@ async function findCompanyByName(
     .first<{ id: string }>();
 }
 
-async function createCompany(
-  db: D1Database,
-  userId: string,
-  name: string,
-  employmentType: string
-): Promise<string> {
-  const id = newId();
-  await db
-    .prepare(
-      `INSERT INTO companies (id, user_id, name, employment_type, sort_order)
-       VALUES (?1, ?2, ?3, ?4, ?5)`
-    )
-    .bind(id, userId, name, employmentType, Date.now())
-    .run();
-  return id;
-}
-
-async function createProject(
-  db: D1Database,
-  userId: string,
-  companyId: string | null,
-  input: Pick<CareerInput, 'project' | 'role' | 'achievements'>
-): Promise<string> {
-  const id = newId();
-  await db
-    .prepare(
-      `INSERT INTO projects (id, user_id, company_id, name, role, achievements, sort_order)
-       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)`
-    )
-    .bind(id, userId, companyId, input.project, input.role || null, input.achievements || null, Date.now())
-    .run();
-  return id;
-}
-
-async function findOrCreateSkill(
+async function findSkillId(
   db: D1Database,
   userId: string,
   name: string
-): Promise<string> {
+): Promise<string | null> {
   const existing = await db
     .prepare(
       "SELECT id FROM skills WHERE user_id = ?1 AND category = 'general' AND name = ?2 LIMIT 1"
     )
     .bind(userId, name)
     .first<{ id: string }>();
-
-  if (existing) {
-    return existing.id;
-  }
-
-  const id = newId();
-  await db
-    .prepare(`INSERT INTO skills (id, user_id, category, name) VALUES (?1, ?2, 'general', ?3)`)
-    .bind(id, userId, name)
-    .run();
-  return id;
+  return existing?.id ?? null;
 }
 
 function parseSkillNames(raw: string): string[] {
@@ -182,33 +138,66 @@ function parseSkillNames(raw: string): string[] {
 
 /**
  * Persist one career-log entry (company + project + skills) for the demo user.
+ *
+ * Lookups for existing company/skill rows happen first (read-only), then all
+ * inserts are executed together via `db.batch`, so the writes for this entry
+ * are applied atomically even if one of them would otherwise fail.
  */
 export async function createCareerEntry(
   db: D1Database,
   userId: string,
   input: CareerInput
 ): Promise<{ companyId: string | null; projectId: string }> {
+  const statements: D1PreparedStatement[] = [];
+
   let companyId: string | null = null;
   const companyName = input.company.trim();
   if (companyName) {
     const existingCompany = await findCompanyByName(db, userId, companyName);
-    companyId = existingCompany
-      ? existingCompany.id
-      : await createCompany(db, userId, companyName, input.employmentType);
+    if (existingCompany) {
+      companyId = existingCompany.id;
+    } else {
+      companyId = newId();
+      statements.push(
+        db
+          .prepare(
+            `INSERT INTO companies (id, user_id, name, employment_type, sort_order)
+             VALUES (?1, ?2, ?3, ?4, ?5)`
+          )
+          .bind(companyId, userId, companyName, input.employmentType, Date.now())
+      );
+    }
   }
 
-  const projectId = await createProject(db, userId, companyId, input);
+  const projectId = newId();
+  statements.push(
+    db
+      .prepare(
+        `INSERT INTO projects (id, user_id, company_id, name, role, achievements, sort_order)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)`
+      )
+      .bind(projectId, userId, companyId, input.project, input.role || null, input.achievements || null, Date.now())
+  );
 
   const skillNames = parseSkillNames(input.skills);
   for (const skillName of skillNames) {
-    const skillId = await findOrCreateSkill(db, userId, skillName);
-    await db
-      .prepare(
-        'INSERT OR IGNORE INTO project_skills (project_id, skill_id) VALUES (?1, ?2)'
-      )
-      .bind(projectId, skillId)
-      .run();
+    let skillId = await findSkillId(db, userId, skillName);
+    if (!skillId) {
+      skillId = newId();
+      statements.push(
+        db
+          .prepare(`INSERT INTO skills (id, user_id, category, name) VALUES (?1, ?2, 'general', ?3)`)
+          .bind(skillId, userId, skillName)
+      );
+    }
+    statements.push(
+      db
+        .prepare('INSERT OR IGNORE INTO project_skills (project_id, skill_id) VALUES (?1, ?2)')
+        .bind(projectId, skillId)
+    );
   }
+
+  await db.batch(statements);
 
   return { companyId, projectId };
 }
