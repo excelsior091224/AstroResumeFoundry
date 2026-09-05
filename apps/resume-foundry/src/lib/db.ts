@@ -125,10 +125,9 @@ async function createCompany(
   await db
     .prepare(
       `INSERT INTO companies (id, user_id, name, employment_type, sort_order)
-       VALUES (?1, ?2, ?3, ?4,
-         (SELECT COALESCE(MAX(sort_order), -1) + 1 FROM companies WHERE user_id = ?2))`
+       VALUES (?1, ?2, ?3, ?4, ?5)`
     )
-    .bind(id, userId, name, employmentType)
+    .bind(id, userId, name, employmentType, Date.now())
     .run();
   return id;
 }
@@ -143,10 +142,9 @@ async function createProject(
   await db
     .prepare(
       `INSERT INTO projects (id, user_id, company_id, name, role, achievements, sort_order)
-       VALUES (?1, ?2, ?3, ?4, ?5, ?6,
-         (SELECT COALESCE(MAX(sort_order), -1) + 1 FROM projects WHERE user_id = ?2))`
+       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)`
     )
-    .bind(id, userId, companyId, input.project, input.role || null, input.achievements || null)
+    .bind(id, userId, companyId, input.project, input.role || null, input.achievements || null, Date.now())
     .run();
   return id;
 }
