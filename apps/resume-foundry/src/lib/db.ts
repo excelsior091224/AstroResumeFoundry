@@ -111,27 +111,18 @@ export async function getCareerContext(
  */
 async function resolveCompanyId(db: D1Database, userId: string, name: string, employmentType: string): Promise<string> {
   const candidateId = newId();
-  await db
+  // Single round trip: insert the company, or if it already exists (unique
+  // user_id+name), update its employment_type to the latest submission.
+  const company = await db
     .prepare(
-      `INSERT OR IGNORE INTO companies (id, user_id, name, employment_type, sort_order)
-       VALUES (?1, ?2, ?3, ?4, ?5)`
+      `INSERT INTO companies (id, user_id, name, employment_type, sort_order)
+       VALUES (?1, ?2, ?3, ?4, ?5)
+       ON CONFLICT(user_id, name) DO UPDATE SET
+         employment_type = excluded.employment_type,
+         updated_at = CURRENT_TIMESTAMP
+       RETURNING id`
     )
     .bind(candidateId, userId, name, employmentType, Date.now())
-    .run();
-
-  // Keep the employment type in sync with the latest submission, in case the
-  // company already existed and the INSERT above was a no-op.
-  await db
-    .prepare(
-      `UPDATE companies SET employment_type = ?3, updated_at = CURRENT_TIMESTAMP
-       WHERE user_id = ?1 AND name = ?2`
-    )
-    .bind(userId, name, employmentType)
-    .run();
-
-  const company = await db
-    .prepare('SELECT id FROM companies WHERE user_id = ?1 AND name = ?2 LIMIT 1')
-    .bind(userId, name)
     .first<{ id: string }>();
 
   if (!company) {
