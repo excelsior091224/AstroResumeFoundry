@@ -16,7 +16,10 @@
       }
     }
   },
-  "forwardPorts": [4321, 8787],
+  "forwardPorts": [
+    4321,
+    8787
+  ],
   "portsAttributes": {
     "4321": {
       "label": "astro dev"
