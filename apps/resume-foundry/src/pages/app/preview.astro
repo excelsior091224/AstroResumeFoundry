@@ -1,24 +1,71 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import { env } from 'cloudflare:workers';
+import { getOrCreateDemoUser, listCareerData } from '../../lib/db';
+
+const db = env.DB;
+const user = await getOrCreateDemoUser(db);
+const companies = await listCareerData(db, user.id);
+const skillNames = Array.from(
+  new Set(companies.flatMap((c) => c.projects.flatMap((p) => p.skills.map((s) => s.name))))
+);
 ---
 <BaseLayout title="職務経歴書プレビュー | Resume Foundry">
   <section class="container stack">
     <div class="card no-print">
       <span class="eyebrow">Resume preview</span>
       <h1>保存データから職務経歴書を生成</h1>
-      <p>初期PDF出力はブラウザ印刷を使う軽量方式にし、DOCXや複数テンプレートを有料機能候補にします。</p>
-      <div class="actions"><button class="button" onclick="window.print()">PDFとして印刷</button></div>
+      <p>D1に保存された職歴・案件・スキルから職務経歴書を組み立てます。</p>
+      <div class="actions">
+        <button class="button" onclick="window.print()">PDFとして印刷</button>
+        <button class="button secondary" id="export-html">HTMLをエクスポート</button>
+        <span id="export-status"></span>
+      </div>
     </div>
     <article class="preview-paper">
       <h1>職務経歴書</h1>
-      <p>氏名: サンプル 太郎</p>
-      <h2>職務要約</h2>
-      <p>Webアプリケーションの設計、開発、運用を中心に、業務改善と開発基盤整備を担当。</p>
-      <h2>職務経歴</h2>
-      <h3>業務管理システム刷新</h3>
-      <p>担当: 要件整理、Laravel API設計、フロントエンド改善、運用改善。</p>
-      <h2>スキル</h2>
-      <p>PHP / Laravel / JavaScript / Astro / Cloudflare Workers / SQL</p>
+      <p>氏名: {user.displayName ?? user.email}</p>
+      {companies.length === 0 && <p>登録された職歴データがありません。まずは職歴ログから登録してください。</p>}
+      {companies.map((company) => (
+        <section>
+          <h2>{company.name}</h2>
+          {company.projects.map((project) => (
+            <div>
+              <h3>{project.name}</h3>
+              {project.role && <p>担当: {project.role}</p>}
+              {project.achievements && <p>{project.achievements}</p>}
+            </div>
+          ))}
+        </section>
+      ))}
+      {skillNames.length > 0 && (
+        <>
+          <h2>スキル</h2>
+          <p>{skillNames.join(' / ')}</p>
+        </>
+      )}
     </article>
   </section>
+
+  <script>
+    const button = document.querySelector<HTMLButtonElement>('#export-html');
+    const status = document.querySelector<HTMLSpanElement>('#export-status');
+
+    button?.addEventListener('click', async () => {
+      if (!status) return;
+      status.textContent = '生成中...';
+      try {
+        const response = await fetch('/api/export', { method: 'POST' });
+        if (!response.ok) {
+          status.textContent = 'エクスポートに失敗しました。';
+          return;
+        }
+        const data = (await response.json()) as { downloadUrl: string };
+        status.textContent = '完了しました。';
+        window.location.href = data.downloadUrl;
+      } catch {
+        status.textContent = '通信エラーが発生しました。';
+      }
+    });
+  </script>
 </BaseLayout>

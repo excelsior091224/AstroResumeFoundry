@@ -5,8 +5,8 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro check && astro build",
-    "preview": "wrangler dev ./dist/_worker.js/index.js --assets ./dist",
-    "deploy": "astro build && wrangler deploy ./dist/_worker.js/index.js",
+    "preview": "wrangler dev ./dist/server/entry.mjs --assets ./dist/client",
+    "deploy": "astro build && wrangler deploy ./dist/server/entry.mjs --assets ./dist/client",
     "db:migrate:local": "wrangler d1 migrations apply astro-resume-foundry --local",
     "db:migrate:remote": "wrangler d1 migrations apply astro-resume-foundry --remote"
   },
@@ -24,6 +24,7 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
+    "@cloudflare/workers-types": "^5.20260905.1",
     "typescript": "^5.9.3",
     "wrangler": "^4.129.0"
   },
